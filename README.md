@@ -2,7 +2,7 @@
 
 > A React seed [Yeoman](http://yeoman.io) generator
 
-This generator will setup a new project using the files from here: https://github.com/badsyntax/react-seed
+This generator will setup a new project using the files from my [react-seed](https://github.com/badsyntax/react-seed) project.
 
 ## Getting Started
 
