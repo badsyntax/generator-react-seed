@@ -1,7 +1,8 @@
-# generator-react-seed [![Build Status](https://secure.travis-ci.org/badsyntax/generator-react-seed.png?branch=master)](https://travis-ci.org/badsyntax/generator-react-seed)
+# generator-react-seed
 
-> A React seed project [Yeoman](http://yeoman.io) generator
+> A React seed [Yeoman](http://yeoman.io) generator
 
+This generator will setup a new project using the files from here: https://github.com/badsyntax/react-seed
 
 ## Getting Started
 
@@ -25,4 +26,6 @@ yo react-seed
 
 ## License
 
-MIT
+Copyright (c) 2015 Richard Willis
+
+MIT (http://opensource.org/licenses/MIT)
