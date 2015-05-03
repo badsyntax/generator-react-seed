@@ -1,1 +1,3 @@
 node_modules/
+app/templates/
+npm-debug.log
