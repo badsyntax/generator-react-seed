@@ -20,10 +20,19 @@ module.exports = yeoman.generators.Base.extend({
     ));
 
     var prompts = [{
-      type: 'confirm',
+      type: 'input',
       name: 'name',
       message: 'What is the name of your project?',
       default: 'example-react-project'
+    }, {
+      type: 'input',
+      name: 'description',
+      message: 'Give a brief description of your project',
+      default: 'Example description'
+    }, {
+      type: 'input',
+      name: 'repository',
+      message: 'Repository URL',
     }];
 
     this.prompt(prompts, function (props) {
@@ -37,11 +46,9 @@ module.exports = yeoman.generators.Base.extend({
 
       var done = this.async();
 
-      var msg = 'Generating from ' + 'Generator Boilerplate'.cyan + ' v' + this.pkg.version.cyan + '...';
-      this.log.writeln(msg);
-
       var ignores = [
         '.git',
+        'package.json',
         'node_modules'
       ];
 
@@ -51,7 +58,9 @@ module.exports = yeoman.generators.Base.extend({
         nodir: true,
         cwd: root,
         dot: true
-      }, function(err, files) {
+      }, onFindFiles.bind(this));
+
+      function onFindFiles(err, files) {
         files.forEach(function(file) {
           var parts = file.split(path.sep);
           var ignoreFile = parts.reduce(function(found, part) {
@@ -62,9 +71,18 @@ module.exports = yeoman.generators.Base.extend({
             path.join(root, file),
             this.destinationPath(file)
           );
-          done();
         }, this);
-      }.bind(this));
+        this.fs.copy(
+          this.templatePath('_package.json'),
+          this.destinationPath('package.json')
+        );
+        var pkg = require(this.templatePath('_package.json'));
+        pkg.name = this.props.name;
+        pkg.description = this.props.description;
+        pkg.repository = this.props.repository;
+        this.write('package.json', JSON.stringify(pkg, null, 2));
+        done();
+      }
     }
   },
 
