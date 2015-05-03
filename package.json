@@ -1,6 +1,6 @@
 {
   "name": "generator-react-seed",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Seed project for React apps using ES6 & webpack",
   "license": "MIT",
   "main": "app/index.js",
