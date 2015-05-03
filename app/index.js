@@ -1,22 +1,48 @@
 'use strict';
+
+require('chalk');
+
 var yeoman = require('yeoman-generator');
-var chalk = require('chalk');
 var yosay = require('yosay');
-var fs = require('fs');
 var path = require('path');
 var glob = require('glob');
-var htmlWiring = require('html-wiring');
+var util = require('util');
+var rimraf = require('rimraf');
+var async = require('async');
+var objectAssign = require('object-assign');
+
+var updateNotifier = require('update-notifier');
+var pkg = require('../package.json');
+
+updateNotifier({pkg: pkg}).notify();
 
 module.exports = yeoman.generators.Base.extend({
+
   initializing: function () {
-    this.pkg = require('../package.json');
+
+    this.pkg = pkg;
+
+    this.branches = [{
+      name: 'master',
+      promptText: 'None'
+    }, {
+      name: 'feature/react-router',
+      promptText: 'react-router'
+    }, {
+      name: 'feature/material-ui',
+      promptText: 'material-ui'
+    }];
+
+    this.on('end', function() {
+      this.log('Run `npm start` to start the application.');
+    });
   },
 
   prompting: function () {
     var done = this.async();
 
     this.log(yosay(
-      'Welcome to the ' + chalk.green('React-Seed') + ' generator!'
+      'Welcome to the ' + 'React-Seed'.green + ' generator!'
     ));
 
     var prompts = [{
@@ -33,6 +59,14 @@ module.exports = yeoman.generators.Base.extend({
       type: 'input',
       name: 'repository',
       message: 'Repository URL',
+    }, {
+      type: 'list',
+      name: 'branch',
+      message: 'What additional features do you want?',
+      choices: this.branches.map(function(branch) {
+        return branch.promptText;
+      }),
+      default: 0
     }];
 
     this.prompt(prompts, function (props) {
@@ -52,36 +86,67 @@ module.exports = yeoman.generators.Base.extend({
         'node_modules'
       ];
 
-      var root = path.join(__dirname, '..', 'node_modules', 'react-seed');
+      async.series([
+        rimraf.bind(rimraf, this.templatePath()),
+        spawnGitClone.bind(this),
+        glob.bind(glob, '**/*', {
+          nodir: true,
+          cwd: this.templatePath(),
+          dot: true
+        }, onFindFiles.bind(this))
+      ]);
 
-      glob('**/*', {
-        nodir: true,
-        cwd: root,
-        dot: true
-      }, onFindFiles.bind(this));
+      function spawnGitClone(done) {
+
+        this.log('Cloning seed project from github...');
+
+        var branch = this.branches.filter(function(branch) {
+          return (branch.promptText === this.props.branch);
+        }.bind(this))[0];
+
+        var url = 'https://github.com/badsyntax/react-seed.git';
+
+        var cmd = util.format(
+          'git clone --depth=1 -b %s %s %s',
+          branch.name, url, this.templatePath()
+        );
+
+        var parts = cmd.split(' ');
+        var args = parts.slice(1);
+        var git = this.spawnCommand(parts[0], args);
+
+        git.on('error', done);
+        git.on('close', function (code) {
+          if (code !== 0) { return done('child process exited with code ' + code); }
+          done(null);
+        });
+      }
 
       function onFindFiles(err, files) {
-        files.forEach(function(file) {
-          var parts = file.split(path.sep);
-          var ignoreFile = parts.reduce(function(found, part) {
-            return found || ignores.indexOf(part) !== -1
-          }, false);
-          if (ignoreFile) { return; }
-          this.fs.copy(
-            path.join(root, file),
-            this.destinationPath(file)
-          );
-        }, this);
-        this.fs.copy(
-          this.templatePath('_package.json'),
-          this.destinationPath('package.json')
-        );
-        var pkg = require(this.templatePath('_package.json'));
-        pkg.name = this.props.name;
-        pkg.description = this.props.description;
-        pkg.repository = this.props.repository;
-        this.write('package.json', JSON.stringify(pkg, null, 2));
+        files.forEach(copyFile.bind(this));
+        writePackageJson.bind(this)();
         done();
+      }
+
+      function copyFile(file) {
+        var parts = file.split(path.sep);
+        var ignoreFile = parts.reduce(function(found, part) {
+          return (found || ignores.indexOf(part) !== -1);
+        }, false);
+        if (ignoreFile) { return; }
+        this.copy(file, file);
+      }
+
+      function writePackageJson() {
+
+        var pkg = objectAssign(require(this.templatePath('package.json'), {
+          name: this.props.name,
+          version:  '0.0.0',
+          description: this.props.description,
+          repository: this.props.repository
+        }));
+
+        this.write('package.json', JSON.stringify(pkg, null, 2));
       }
     }
   },
