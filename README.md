@@ -1,8 +1,11 @@
-# generator-react-seed
+# generator-react-seed [![Build Status](https://travis-ci.org/badsyntax/generator-react-seed.svg?branch=master)](https://travis-ci.org/badsyntax/generator-react-seed)
 
-> A React seed [Yeoman](http://yeoman.io) generator
+> Seed project for React apps using ES6 & webpack
 
-This generator will setup a new project using the files from my [react-seed](https://github.com/badsyntax/react-seed) project.
+This yeoman generator will install base projet files from my [react-seed](https://github.com/badsyntax/react-seed) project. You have the option of installing the following features:
+
+* react-router
+* material-ui
 
 ## Getting Started
 

@@ -86,17 +86,19 @@ module.exports = yeoman.generators.Base.extend({
         'node_modules'
       ];
 
-      async.series([
+      async.waterfall([
         rimraf.bind(rimraf, this.templatePath()),
         spawnGitClone.bind(this),
         glob.bind(glob, '**/*', {
           nodir: true,
           cwd: this.templatePath(),
           dot: true
-        }, onFindFiles.bind(this))
-      ]);
+        }),
+        onFindFiles.bind(this),
+        writePackageJson.bind(this)
+      ], done);
 
-      function spawnGitClone(done) {
+      function spawnGitClone(next) {
 
         this.log('Cloning seed project from github...');
 
@@ -115,17 +117,16 @@ module.exports = yeoman.generators.Base.extend({
         var args = parts.slice(1);
         var git = this.spawnCommand(parts[0], args);
 
-        git.on('error', done);
+        git.on('error', next);
         git.on('close', function (code) {
-          if (code !== 0) { return done('child process exited with code ' + code); }
-          done(null);
+          if (code !== 0) { return next('child process exited with code ' + code); }
+          next(null);
         });
       }
 
-      function onFindFiles(err, files) {
+      function onFindFiles(files, next) {
         files.forEach(copyFile.bind(this));
-        writePackageJson.bind(this)();
-        done();
+        next();
       }
 
       function copyFile(file) {
@@ -137,7 +138,7 @@ module.exports = yeoman.generators.Base.extend({
         this.copy(file, file);
       }
 
-      function writePackageJson() {
+      function writePackageJson(next) {
 
         var pkg = objectAssign(require(this.templatePath('package.json'), {
           name: this.props.name,
@@ -147,6 +148,7 @@ module.exports = yeoman.generators.Base.extend({
         }));
 
         this.write('package.json', JSON.stringify(pkg, null, 2));
+        next();
       }
     }
   },
