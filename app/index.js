@@ -140,12 +140,14 @@ module.exports = yeoman.generators.Base.extend({
 
       function writePackageJson(next) {
 
-        var pkg = objectAssign(require(this.templatePath('package.json'), {
+        var pkg = require(this.templatePath('package.json'));
+
+        objectAssign(pkg, {
           name: this.props.name,
           version:  '0.0.0',
           description: this.props.description,
           repository: this.props.repository
-        }));
+        });
 
         this.write('package.json', JSON.stringify(pkg, null, 2));
         next();
