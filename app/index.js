@@ -3,13 +3,14 @@
 require('chalk');
 
 var yeoman = require('yeoman-generator');
-var yosay = require('yosay');
 var path = require('path');
 var glob = require('glob');
 var util = require('util');
 var rimraf = require('rimraf');
 var async = require('async');
 var objectAssign = require('object-assign');
+var validateNpmPackageName = require('validate-npm-package-name');
+var npm = require('npm');
 
 var updateNotifier = require('update-notifier');
 var pkg = require('../package.json');
@@ -41,24 +42,35 @@ module.exports = yeoman.generators.Base.extend({
   prompting: function () {
     var done = this.async();
 
-    this.log(yosay(
-      'Welcome to the ' + 'React-Seed'.green + ' generator!'
-    ));
+    this.log('Welcome to the ' + 'React-Seed'.green + ' generator!');
 
     var prompts = [{
       type: 'input',
       name: 'name',
-      message: 'What is the name of your project?',
+      message: 'Name of the project',
+      validate: function(input) {
+        var valid = validateNpmPackageName(input);
+        return (valid.validForNewPackages && valid.validForNewPackages);
+      },
       default: 'example-react-project'
     }, {
       type: 'input',
       name: 'description',
-      message: 'Give a brief description of your project',
+      message: 'Brief description of the project',
       default: 'Example description'
     }, {
       type: 'input',
       name: 'repository',
-      message: 'Repository URL',
+      message: 'Repository',
+      default: function(answers) {
+        var done = this.async();
+        npm.load(function (er, npm) {
+          var username = npm.config.get('//registry.npmjs.org/:username');
+          if (!username) { username = 'your-github-user'; }
+          var repository = username + '/' + answers.name;
+          done(repository);
+        });
+      }
     }, {
       type: 'list',
       name: 'branch',
@@ -88,17 +100,12 @@ module.exports = yeoman.generators.Base.extend({
 
       async.waterfall([
         rimraf.bind(rimraf, this.templatePath()),
-        spawnGitClone.bind(this),
-        glob.bind(glob, '**/*', {
-          nodir: true,
-          cwd: this.templatePath(),
-          dot: true
-        }),
-        onFindFiles.bind(this),
+        cloneProject.bind(this),
+        copyFiles.bind(this),
         writePackageJson.bind(this)
       ], done);
 
-      function spawnGitClone(next) {
+      function cloneProject(next) {
 
         this.log('Cloning seed project from github...');
 
@@ -124,7 +131,16 @@ module.exports = yeoman.generators.Base.extend({
         });
       }
 
-      function onFindFiles(files, next) {
+      function copyFiles(next) {
+        glob('**/*', {
+          nodir: true,
+          cwd: this.templatePath(),
+          dot: true
+        }, onFindFiles.bind(this, next));
+      }
+
+      function onFindFiles(next, err, files) {
+        if (err) { return next(err); }
         files.forEach(copyFile.bind(this));
         next();
       }
