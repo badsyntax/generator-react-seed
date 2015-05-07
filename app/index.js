@@ -10,8 +10,8 @@ var rimraf = require('rimraf');
 var async = require('async');
 var objectAssign = require('object-assign');
 var validateNpmPackageName = require('validate-npm-package-name');
-var npm = require('npm');
-
+var gitConfig = require('git-config');
+var githubApi = require('octonode');
 var updateNotifier = require('update-notifier');
 var pkg = require('../package.json');
 
@@ -35,56 +35,79 @@ module.exports = yeoman.generators.Base.extend({
     }];
 
     this.on('end', function() {
+      this.log('Finished generating the project!'.green);
       this.log('Run `npm start` to start the application.');
     });
+
+    this.log('Welcome to the ' + 'React-Seed'.green + ' generator!');
   },
 
   prompting: function () {
     var done = this.async();
 
-    this.log('Welcome to the ' + 'React-Seed'.green + ' generator!');
+    async.waterfall([
+      getGithubUsername.bind(this),
+      runPrompts.bind(this)
+    ], done);
 
-    var prompts = [{
-      type: 'input',
-      name: 'name',
-      message: 'Name of the project',
-      validate: function(input) {
-        var valid = validateNpmPackageName(input);
-        return (valid.validForNewPackages && valid.validForNewPackages);
-      },
-      default: 'example-react-project'
-    }, {
-      type: 'input',
-      name: 'description',
-      message: 'Brief description of the project',
-      default: 'Example description'
-    }, {
-      type: 'input',
-      name: 'repository',
-      message: 'Repository',
-      default: function(answers) {
-        var done = this.async();
-        npm.load(function (er, npm) {
-          var username = npm.config.get('//registry.npmjs.org/:username');
-          if (!username) { username = 'your-github-user'; }
-          var repository = username + '/' + answers.name;
-          done(repository);
-        });
-      }
-    }, {
-      type: 'list',
-      name: 'branch',
-      message: 'What additional features do you want?',
-      choices: this.branches.map(function(branch) {
-        return branch.promptText;
-      }),
-      default: 0
-    }];
+    function getGithubUsername(next) {
 
-    this.prompt(prompts, function (props) {
-      this.props = props;
-      done();
-    }.bind(this));
+      this.log('Loading github user data...'.yellow);
+
+      var config = gitConfig.sync();
+      var email = config.user.email;
+
+      var clientApi = githubApi.client();
+      var ghSearchApi = clientApi.search();
+
+      ghSearchApi.users({
+        q: email
+      }, function(err, users) {
+        this.log('done.'.yellow + '\n');
+        next(null,
+          !err && users.items.length > 0 ?
+          users.items[0].login :
+          'your-github-user'
+        );
+      }.bind(this));
+    }
+
+    function runPrompts(username, next) {
+      var prompts = [{
+        type: 'input',
+        name: 'name',
+        message: 'Name of the project',
+        validate: function(input) {
+          var valid = validateNpmPackageName(input);
+          return (valid.validForNewPackages && valid.validForNewPackages);
+        },
+        default: 'example-react-project'
+      }, {
+        type: 'input',
+        name: 'description',
+        message: 'Brief description of the project',
+        default: 'Example description'
+      }, {
+        type: 'input',
+        name: 'repository',
+        message: 'Repository',
+        default: function(answers) {
+          return username + '/' + answers.name;
+        }
+      }, {
+        type: 'list',
+        name: 'branch',
+        message: 'What additional features do you want?',
+        choices: this.branches.map(function(branch) {
+          return branch.promptText;
+        }),
+        default: 0
+      }];
+      this.prompt(prompts, function (props) {
+        this.props = props;
+        next(null);
+      }.bind(this));
+    }
   },
 
   writing: {
@@ -99,11 +122,15 @@ module.exports = yeoman.generators.Base.extend({
       ];
 
       async.waterfall([
-        rimraf.bind(rimraf, this.templatePath()),
+        removeTemplateFiles.bind(this),
         cloneProject.bind(this),
         copyFiles.bind(this),
         writePackageJson.bind(this)
       ], done);
+
+      function removeTemplateFiles(next) {
+        rimraf(this.templatePath(), next);
+      }
 
       function cloneProject(next) {
 
@@ -136,13 +163,11 @@ module.exports = yeoman.generators.Base.extend({
           nodir: true,
           cwd: this.templatePath(),
           dot: true
-        }, onFindFiles.bind(this, next));
-      }
-
-      function onFindFiles(next, err, files) {
-        if (err) { return next(err); }
-        files.forEach(copyFile.bind(this));
-        next();
+        }, function onFindFiles(err, files) {
+          if (err) { return next(err); }
+          files.forEach(copyFile.bind(this));
+          next();
+        }.bind(this));
       }
 
       function copyFile(file) {
