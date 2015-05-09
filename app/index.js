@@ -15,13 +15,9 @@ var githubApi = require('octonode');
 var updateNotifier = require('update-notifier');
 var pkg = require('../package.json');
 
-updateNotifier({pkg: pkg}).notify();
-
 module.exports = yeoman.generators.Base.extend({
 
   initializing: function () {
-
-    this.pkg = pkg;
 
     this.branches = [{
       name: 'master',
@@ -34,12 +30,21 @@ module.exports = yeoman.generators.Base.extend({
       promptText: 'material-ui'
     }];
 
+    this.log('Welcome to the ' + 'React-Seed'.green + ' generator!');
+
     this.on('end', function() {
       this.log('Finished generating the project!'.green);
       this.log('Run `npm start` to start the application.');
     });
 
-    this.log('Welcome to the ' + 'React-Seed'.green + ' generator!');
+    this.checkForUpdates();
+  },
+
+  checkForUpdates: function() {
+    var notifier = updateNotifier({
+      pkg: pkg
+    });
+    notifier.notify({ defer: false });
   },
 
   prompting: function () {
@@ -52,7 +57,7 @@ module.exports = yeoman.generators.Base.extend({
 
     function getGithubUsername(next) {
 
-      this.log('Loading github user data...'.yellow);
+      this.log.write('Loading github user data...'.yellow);
 
       var config = gitConfig.sync();
       var email = config.user.email;
@@ -63,7 +68,7 @@ module.exports = yeoman.generators.Base.extend({
       ghSearchApi.users({
         q: email
       }, function(err, users) {
-        this.log('done.'.yellow + '\n');
+        this.log('done.'.yellow);
         next(null,
           !err && users.items.length > 0 ?
           users.items[0].login :
