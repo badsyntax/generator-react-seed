@@ -27,6 +27,53 @@ Finally, initiate the generator:
 yo react-seed
 ```
 
+## Files
+
+```
+├── CHANGELOG.md
+├── LICENSE
+├── README.md
+├── app
+│   ├── actions
+│   │   └── AppActions.js
+│   ├── app.jsx
+│   ├── components
+│   │   ├── App
+│   │   │   ├── App.jsx
+│   │   │   └── _App.scss
+│   │   ├── Body
+│   │   │   ├── Body.jsx
+│   │   │   └── _Body.scss
+│   │   └── Footer
+│   │       ├── Footer.jsx
+│   │       ├── _Footer.scss
+│   │       └── __tests__
+│   │           └── Footer-test.js
+│   ├── constants
+│   │   └── AppConstants.js
+│   ├── dispatcher
+│   │   └── AppDispatcher.js
+│   ├── favicon.ico
+│   ├── index.html
+│   ├── scss
+│   │   ├── _base.scss
+│   │   ├── _functions.scss
+│   │   ├── _mixins.scss
+│   │   ├── _toolkit.scss
+│   │   └── app.scss
+│   ├── stores
+│   │   ├── BaseStore.js
+│   │   ├── ItemsStore.js
+│   │   └── __tests__
+│   │       └── BaseStore-test.js
+│   └── util
+│       └── WebAPI.js
+├── dev-server.js
+├── jest-preprocessor.js
+├── package.json
+└── webpack.config.js
+```
+
 ## License
 
 Copyright (c) 2015 Richard Willis
